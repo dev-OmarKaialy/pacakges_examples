@@ -1,19 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localization/flutter_localization.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar', null);
+  await FlutterLocalization.instance.ensureInitialized();
   runApp(const IntlDemoApp());
 }
 
-class IntlDemoApp extends StatelessWidget {
+class IntlDemoApp extends StatefulWidget {
   const IntlDemoApp({super.key});
+
+  @override
+  State<IntlDemoApp> createState() => _IntlDemoAppState();
+}
+
+class _IntlDemoAppState extends State<IntlDemoApp> {
+  final FlutterLocalization localization = FlutterLocalization.instance;
+
+  @override
+  void initState() {
+    localization.init(
+      mapLocales: [
+        const MapLocale('en', AppLocale.EN),
+        const MapLocale('ar', AppLocale.AR),
+        const MapLocale('fr', AppLocale.FR),
+      ],
+      initLanguageCode: 'en',
+    );
+    localization.onTranslatedLanguage = _onTranslatedLanguage;
+    super.initState();
+  }
+
+  void _onTranslatedLanguage(Locale? locale) {
+    WidgetsBinding.instance.addPostFrameCallback((s) {
+      setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      supportedLocales: localization.supportedLocales,
+      localizationsDelegates: localization.localizationsDelegates,
+      locale: localization.currentLocale,
       title: 'Intl Package Demo',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const IntlDemoScreen(),
@@ -33,11 +66,31 @@ class _IntlDemoScreenState extends State<IntlDemoScreen> {
   final currentDate = DateTime.now();
   final number = 1234567.89;
   final percentage = 0.45;
+  final FlutterLocalization localization = FlutterLocalization.instance;
+  @override
+  void initState() {
+    localization.init(
+      mapLocales: [
+        const MapLocale('en', AppLocale.EN),
+        const MapLocale('ar', AppLocale.AR),
+        const MapLocale('fr', AppLocale.FR),
+      ],
+      initLanguageCode: 'en',
+    );
+    localization.onTranslatedLanguage = _onTranslatedLanguage;
+    super.initState();
+  }
+
+// the setState function here is a must to add
+  void _onTranslatedLanguage(Locale? locale) {
+    setState(() {});
+  }
 
   void _changeLocale(String locale) {
     setState(() {
       _locale = locale;
     });
+    localization.translate(locale);
   }
 
   @override
@@ -52,9 +105,9 @@ class _IntlDemoScreenState extends State<IntlDemoScreen> {
           PopupMenuButton<String>(
             onSelected: _changeLocale,
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'en_US', child: Text('English (US)')),
+              const PopupMenuItem(value: 'en', child: Text('English (US)')),
               const PopupMenuItem(value: 'ar', child: Text('العربية')),
-              const PopupMenuItem(value: 'fr_FR', child: Text('Français')),
+              const PopupMenuItem(value: 'fr', child: Text('Français')),
             ],
           ),
         ],
@@ -107,8 +160,9 @@ class _IntlDemoScreenState extends State<IntlDemoScreen> {
               // Localization Placeholder
               _buildSectionTitle('3. Localization (Example Placeholder)'),
               _buildCard(
-                title: 'Localized Greeting:',
-                value: 'مرحبًا! كيف حالك؟',
+                title:
+                    'Localized Greeting: need full restart to show the difference',
+                value: AppLocale.title.getString(context),
               ),
             ],
           ),
@@ -147,4 +201,11 @@ class _IntlDemoScreenState extends State<IntlDemoScreen> {
       ),
     );
   }
+}
+
+mixin AppLocale {
+  static const String title = 'title';
+  static const Map<String, dynamic> EN = {title: 'Hello , How Are You?'};
+  static const Map<String, dynamic> AR = {title: 'مرحباً، كيف حالك؟'};
+  static const Map<String, dynamic> FR = {title: 'Hi , pourque?'};
 }
